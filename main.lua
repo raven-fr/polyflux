@@ -73,6 +73,8 @@ function love.keypressed(key)
 			piece:move(0, 1)
 		elseif key == "down" then
 			piece:move(-1, 0)
+		elseif key == "up" then
+			piece:rotate()
 		end
 	end
 end

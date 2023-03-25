@@ -30,6 +30,7 @@ end
 local function create_task(fn)
 	local task = {}
 	task.co = coroutine.create(fn)
+	resume_task(task)
 	return task
 end
 
@@ -49,6 +50,19 @@ end
 
 function M.queue(...)
 	table.insert(queue, {...})
+end
+
+function M.await_any(...)
+	local tasks = {...}
+	for i, t in ipairs(tasks) do
+		tasks[i] = create_task(t)
+	end
+	while true do
+		local e = coroutine.yield()
+		for _, t in ipairs(tasks) do
+			if not resume_task(t, e) then return end
+		end
+	end
 end
 
 function M.mainloop(start)
@@ -76,16 +90,16 @@ function M.mainloop(start)
 		local q = queue
 		queue = {}
 		for i, e in ipairs(q) do
-			if not resume_task(main, e) then return end
+			if not resume_task(main, e) then return 0 end
 		end
 
 		local dt = love.timer.step()
-		if not resume_task(main, {"update", dt}) then return end
+		if not resume_task(main, {"update", dt}) then return 0 end
 
 		if love.graphics and love.graphics.isActive() then
 			love.graphics.origin()
 			love.graphics.clear(love.graphics.getBackgroundColor())
-			if not resume_task(main, {"draw", dt}) then return end
+			if not resume_task(main, {"draw", dt}) then return 0 end
 			love.graphics.present()
 		end
 

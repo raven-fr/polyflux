@@ -1,14 +1,13 @@
+local evloop = require "evloop"
 local playfield = require "game.playfield"
 local tetrominoes = require "game.tetrominoes"
 
-local field
+local field = playfield.new(20, 10)
 local piece
 
-function love.load()
-	field = playfield.new(20, 10)
-end
+local function draw()
+	evloop.poll "draw"
 
-function love.draw()
 	local _, height = love.graphics.getDimensions()
 	local size = height / field.lines
 
@@ -40,9 +39,12 @@ function love.draw()
 			end
 		end
 	end
+
+	return draw()
 end
 
 local function gravity()
+	evloop.sleep(0.5)
 	field:remove_cleared()
 	if not piece then
 		piece = tetrominoes.l:drop(field)
@@ -53,20 +55,11 @@ local function gravity()
 			piece = nil
 		end
 	end
+	return gravity()
 end
 
-local interval = 0.5
-local ellapsed = 0
-
-function love.update(dt)
-	ellapsed = ellapsed + dt
-	while ellapsed >= interval do
-		gravity()
-		ellapsed = ellapsed - interval
-	end
-end
-
-function love.keypressed(key)
+local function inputs()
+	local _, key = evloop.poll "keypressed"
 	if piece then
 		if key == "left" then
 			piece:move(0, -1)
@@ -78,4 +71,13 @@ function love.keypressed(key)
 			piece:rotate()
 		end
 	end
+	return inputs()
+end
+
+function love.run()
+	if love.load then love.load(love.arg.parseGameArguments(arg), arg) end
+	if love.timer then love.timer.step() end
+	return evloop.mainloop(function()
+		evloop.await_any(inputs, gravity, draw)
+	end)
 end

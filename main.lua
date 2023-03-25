@@ -43,6 +43,7 @@ function love.draw()
 end
 
 local function gravity()
+	field:remove_cleared()
 	if not piece then
 		piece = tetrominoes.l:drop(field)
 		assert(piece, "you lose.")
@@ -52,7 +53,6 @@ local function gravity()
 			piece = nil
 		end
 	end
-	field:remove_cleared()
 end
 
 local interval = 0.5

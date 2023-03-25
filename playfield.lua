@@ -23,23 +23,36 @@ function M:cell_full(line, column)
 	end
 end
 
-function M:line_full(line)
-	for column = 1, w do
-		if self.cells[line][column] then
-			return true
+function M:line_cleared(line)
+	for column = 1, self.columns do
+		if not self:cell_full(line, column) then
+			return false
 		end
 	end
-	return false
+	return true
 end
 
-
-function M:shift_down(line)
+function M:remove_line(line)
+	for line = line, self.lines * 2 do
+		self.cells[line] = self.cells[line + 1]
+	end
 end
 
-function M:shift_up(line)
+function M:insert_line(line)
+	for line = self.lines * 2, -line + 1 do
+		self.cells[line] = self.cells[line - 1]
+	end
 end
 
-function M:clear_full()
+function M:remove_cleared()
+	local line = 1
+	while line < self.lines * 2 do
+		if self:line_cleared(line) then
+			self:remove_line(line)
+		else
+			line = line + 1
+		end
+	end
 end
 
 return M

@@ -52,6 +52,7 @@ local function gravity()
 			piece = nil
 		end
 	end
+	field:remove_cleared()
 end
 
 local interval = 0.5

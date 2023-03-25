@@ -21,8 +21,6 @@ function M.def(name, shape)
 		table.insert(new.cells, 1, line)
 	end
 
-	if name == "tetr.O" then print(#new.cells) end
-
 	for line = 1, new.size do
 		for column = 1, new.size do
 			if new.cells[line][column] then

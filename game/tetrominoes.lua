@@ -1,4 +1,4 @@
-local poly = require "polyomino"
+local poly = require "game.polyomino"
 
 local M = {}
 M.__index = M

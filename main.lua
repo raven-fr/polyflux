@@ -1,5 +1,5 @@
-local playfield = require "playfield"
-local tetrominoes = require "tetrominoes"
+local playfield = require "game.playfield"
+local tetrominoes = require "game.tetrominoes"
 
 local field
 local piece

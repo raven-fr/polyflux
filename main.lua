@@ -1,4 +1,5 @@
 local evloop = require "evloop"
+local viewport = require "viewport"
 local playfield = require "game.playfield"
 local tetrominoes = require "game.tetrominoes"
 
@@ -8,8 +9,7 @@ local piece
 local function draw()
 	evloop.poll "draw"
 
-	local _, height = love.graphics.getDimensions()
-	local size = height / field.lines
+	local size = viewport.height / field.lines
 
 	love.graphics.setColor(0.1, 0.1, 0.1)
 	love.graphics.rectangle("fill",
@@ -18,7 +18,7 @@ local function draw()
 
 	local function draw_block(line, column)
 		local x = (column - 1) * size
-		local y = height - line * size
+		local y = viewport.height - line * size
 		love.graphics.rectangle("fill", x, y, size, size)
 	end
 

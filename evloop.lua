@@ -97,8 +97,8 @@ function M.mainloop(start)
 		if not resume_task(main, {"update", dt}) then return 0 end
 
 		if love.graphics and love.graphics.isActive() then
-			love.graphics.origin()
 			love.graphics.clear(love.graphics.getBackgroundColor())
+			require "viewport".origin()
 			if not resume_task(main, {"draw", dt}) then return 0 end
 			love.graphics.present()
 		end

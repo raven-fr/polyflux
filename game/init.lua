@@ -2,6 +2,7 @@ local evloop = require "evloop"
 local playfield = require "game.playfield"
 local tetrominoes = require "game.tetrominoes"
 local gfx = require "game.gfx"
+local bag = require "game.bag"
 
 local M = {}
 M.__index = M
@@ -14,6 +15,7 @@ function M.new(params)
 	new.can_hold = true
 	new.gfx = gfx.new(new)
 	new.gravity_delay = 0.5
+	new.bag = bag.new() -- TODO: bag should be seeded
 	return new
 end
 
@@ -70,10 +72,8 @@ local pieces = {
 }
 
 function M:next_piece()
-	-- TODO: interface with configurable random system (it should implement
-	-- seeds, bags)
 	self.can_hold = true
-	self.piece = pieces[love.math.random(#pieces)]:drop(self.field)
+	self.piece = self.bag:next_piece():drop(self.field)
 	return self.piece and true or false
 end
 

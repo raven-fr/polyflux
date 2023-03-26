@@ -96,6 +96,18 @@ function M:draw_hold()
 	self:draw_tetromino_confined(self.game.hold, hold_x, hold_y, block_size*3/2, margin)
 end
 
+function M:draw_queue()
+	local block_size, field_x, field_y, field_w, field_h = self:field_dimensions()
+	local queue = self.game.bag:lookahead(5)
+	local margin = block_size/2
+	local x, y = field_x + field_w + block_size, field_y
+	love.graphics.setColor(0, 0, 0)
+	love.graphics.rectangle("fill", x, y, block_size*1.5 + margin, (block_size*1.5 + margin) * 5)
+	for i=1, #queue do
+		self:draw_tetromino_confined(queue[i], x, y + (i-1)*(block_size*1.5 + margin), block_size*1.5, margin)
+	end
+end
+
 function M:draw_piece()
 	local piece = self.game.piece
 	if not piece then return end
@@ -129,6 +141,7 @@ function M:draw(dt)
 	self:draw_field()
 	self:draw_piece()
 	self:draw_hold()
+	self:draw_queue()
 end
 
 function M:loop()

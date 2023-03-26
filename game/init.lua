@@ -30,6 +30,7 @@ function M.new(params)
 	new.bag = bag.new(pieces, {seed = os.time(), randomly_add = {
 		[heav_optimal_shapes.heav] = {inverse_chance = 5000},
 		[heav_optimal_shapes.spite_shape] = {inverse_chance = 10000},
+		[heav_optimal_shapes.amongus] = {inverse_chance = 13500},
 	}})
 	return new
 end

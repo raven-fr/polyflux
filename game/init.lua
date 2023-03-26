@@ -3,6 +3,7 @@ local playfield = require "game.playfield"
 local tetrominoes = require "game.tetrominoes"
 local heav_optimal_shapes = require "game.heav_optimal_shapes"
 local gfx = require "game.gfx"
+local sfx = require "game.sfx"
 local bag = require "game.bag"
 
 local M = {}
@@ -52,8 +53,12 @@ function M:input_loop()
 			elseif key == "up" then
 				self.piece:rotate()
 			elseif key == "space" then
-				repeat until not self.piece:move(-1, 0)
+				local dropped = false
+				while self.piece:move(-1, 0) do
+					dropped = true
+				end
 				self.piece:place()
+				if dropped then sfx.play("harddrop") end
 			elseif key == "c" then
 				if not self.can_hold then goto bypass end
 				if not self.hold then

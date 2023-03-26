@@ -26,7 +26,7 @@ function M.new(params)
 	new.can_hold = true
 	new.gfx = gfx.new(new)
 	new.gravity_delay = 0.5
-	new.bag = bag.new(pieces, {seed = 324, randomly_add = {
+	new.bag = bag.new(pieces, {seed = os.time(), randomly_add = {
 		[heav_optimal_shapes.heav] = {inverse_chance = 5000},
 		[heav_optimal_shapes.spite_shape] = {inverse_chance = 10000},
 	}})

@@ -41,20 +41,22 @@ function M:field_dimensions()
 	return block_size, x, y, w, h
 end
 
-function M:draw_square(block, x, y, block_size)
+function M:draw_square(block, x, y, block_size, shadow)
 	if colors[block] then
 		love.graphics.setColor(unpack(colors[block]))
 	else
 		love.graphics.setColor(1, 1, 1)
 	end
+	local r, g, b = love.graphics.getColor()
+	love.graphics.setColor(r, g, b, shadow and 0.2 or 1)
 	love.graphics.rectangle("fill", x, y, block_size, block_size)
 end
 
-function M:draw_block(block, line, column)
+function M:draw_block(block, line, column, shadow)
 	local block_size, field_x, field_y, _, field_h = self:field_dimensions()
 	local x = field_x + (column - 1) * block_size
 	local y = field_y + field_h - line * block_size
-	if block then self:draw_square(block, x, y, block_size) end
+	if block then self:draw_square(block, x, y, block_size, shadow) end
 end
 
 function M:draw_tetromino(tetromino, x, y, block_size, trim_margins)
@@ -108,15 +110,23 @@ function M:draw_queue()
 	end
 end
 
-function M:draw_piece()
+function M:draw_piece(shadow)
 	local piece = self.game.piece
+	if shadow then
+		local old_piece = piece
+		piece = piece.poly:drop(self.game.field)
+		piece.line = old_piece.line
+		piece.column = old_piece.column
+		piece.rotation = old_piece.rotation
+		while piece:move(-1,0) do end
+	end
 	if not piece then return end
 	for l = 0, piece.poly.size - 1 do
 		if piece.line + l <= self.game.field.lines then
 			for c = 0, piece.poly.size - 1 do
 				local block = piece:get_cell(l, c)
 				if block then
-					self:draw_block(block, piece.line + l, piece.column + c)
+					self:draw_block(block, piece.line + l, piece.column + c, shadow)
 				end
 			end
 		end
@@ -142,6 +152,9 @@ function M:draw(dt)
 	self:draw_piece()
 	self:draw_hold()
 	self:draw_queue()
+	if self.game.piece then
+		self:draw_piece(true) -- shadow.
+	end
 end
 
 function M:loop()

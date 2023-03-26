@@ -60,16 +60,13 @@ function M:input_loop()
 end
 
 local pieces = {
-	--[[tetrominoes.i,
+	tetrominoes.i,
 	tetrominoes.j,
 	tetrominoes.l,
 	tetrominoes.o,
 	tetrominoes.s,
 	tetrominoes.t,
-	tetrominoes.z,]]
-	tetrominoes.i,
-	tetrominoes.o,
-	tetrominoes.j
+	tetrominoes.z,
 }
 
 function M:next_piece()

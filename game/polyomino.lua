@@ -35,21 +35,6 @@ function M.def(name, shape)
 	return new
 end
 
-local piece = {}
-piece.__index = piece
-
-function M:drop(field)
-	local new = setmetatable({poly = self}, piece)
-	new.field = field
-	new.line = field.lines - (self.bottom - 1)
-	new.column = math.floor(field.columns / 2 - self.size / 2 + 0.5) 
-	new.rotation = 1
-	if not new:can_occupy() then
-		return
-	end
-	return new
-end
-
 local rotations = {
 	{1, 0, 0, 1},
 	{0, 1, -1, 0},
@@ -69,10 +54,28 @@ local function rotate(line, column, rotation, size)
 	return line, column
 end
 
+function M:get_cell(line, column, rotation)
+	line, column = rotate(line, column, rotation or 1, self.size)
+	return self.cells[line + 1][column + 1]
+end
+
+local piece = {}
+piece.__index = piece
+
+function M:drop(field)
+	local new = setmetatable({poly = self}, piece)
+	new.field = field
+	new.line = field.lines - (self.bottom - 1)
+	new.column = math.floor(field.columns / 2 - self.size / 2 + 0.5)
+	new.rotation = 1
+	if not new:can_occupy() then
+		return
+	end
+	return new
+end
+
 function piece:get_cell(line, column, rotation)
-	line, column = rotate(
-		line, column, rotation or self.rotation, self.poly.size)
-	return self.poly.cells[line + 1][column + 1]
+	return self.poly:get_cell(line, column, rotation or self.rotation)
 end
 
 function piece:can_occupy(line, column, rotation)
@@ -90,6 +93,9 @@ function piece:can_occupy(line, column, rotation)
 end
 
 function piece:place()
+	if self.placed then
+		return
+	end
 	for line = 0, self.poly.size - 1 do
 		for column = 0, self.poly.size - 1 do
 			local cell = self:get_cell(line, column)
@@ -98,6 +104,7 @@ function piece:place()
 			end
 		end
 	end
+	self.placed = true
 end
 
 function piece:rotate(ccw)

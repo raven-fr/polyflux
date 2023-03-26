@@ -1,11 +1,22 @@
 local evloop = require "evloop"
 local playfield = require "game.playfield"
 local tetrominoes = require "game.tetrominoes"
+local heav_optimal_shapes = require "game.heav_optimal_shapes"
 local gfx = require "game.gfx"
 local bag = require "game.bag"
 
 local M = {}
 M.__index = M
+
+local pieces = {
+	tetrominoes.i,
+	tetrominoes.j,
+	tetrominoes.l,
+	tetrominoes.o,
+	tetrominoes.s,
+	tetrominoes.t,
+	tetrominoes.z,
+}
 
 function M.new(params)
 	local new = setmetatable({}, M)
@@ -15,7 +26,9 @@ function M.new(params)
 	new.can_hold = true
 	new.gfx = gfx.new(new)
 	new.gravity_delay = 0.5
-	new.bag = bag.new() -- TODO: bag should be seeded
+	new.bag = bag.new(pieces, {seed = 324, randomly_add = {
+		[heav_optimal_shapes.heav] = {inverse_chance = 8192},
+	}})
 	return new
 end
 
@@ -60,16 +73,6 @@ function M:input_loop()
 	end
 	return loop
 end
-
-local pieces = {
-	tetrominoes.i,
-	tetrominoes.j,
-	tetrominoes.l,
-	tetrominoes.o,
-	tetrominoes.s,
-	tetrominoes.t,
-	tetrominoes.z,
-}
 
 function M:next_piece()
 	self.can_hold = true

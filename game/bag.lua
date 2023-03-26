@@ -3,10 +3,13 @@ local tetrominoes = require "game.tetrominoes"
 local M = {}
 M.__index = M
 
-M.new = function()
+M.new = function(set, settings)
     local new = setmetatable({}, M)
     new.queue = {}
     new.pool = {}
+    new.set = set
+    new.randomly_add = settings.randomly_add or {}
+    new.rng = love.math.newRandomGenerator(settings.seed)
     return new
 end
 
@@ -16,22 +19,24 @@ function M:lookahead(amount)
         if self.queue[i] then
             table.insert(res, self.queue[i])
         else
-            if #self.pool == 0 then
-                self.pool = {
-                    tetrominoes.i,
-                    tetrominoes.j,
-                    tetrominoes.l,
-                    tetrominoes.o,
-                    tetrominoes.s,
-                    tetrominoes.t,
-                    tetrominoes.z,
-                }
+            for k,v in pairs(self.randomly_add) do
+                if self.rng:random(1, v.inverse_chance) == 1 then
+                    table.insert(self.queue, k)
+                    table.insert(res, k)
+                    goto bypass
+                end
             end
-            local choice = math.random(1, #self.pool)
+            if #self.pool == 0 then
+                for _, v in ipairs(self.set) do
+                    table.insert(self.pool, v)
+                end
+            end
+            local choice = self.rng:random(1, #self.pool)
             local choice_tetr = self.pool[choice]
             table.remove(self.pool, choice)
             table.insert(self.queue, choice_tetr)
             table.insert(res, choice_tetr)
+            ::bypass::
         end
     end
     return res

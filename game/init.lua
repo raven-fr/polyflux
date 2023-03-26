@@ -10,6 +10,8 @@ function M.new(params)
 	local new = setmetatable({}, M)
 	new.params = params
 	new.field = playfield.new(params.lines or 20, params.columns or 10)
+	new.hold = false
+	new.can_hold = true
 	new.gfx = gfx.new(new)
 	new.gravity_delay = 0.5
 	return new
@@ -36,6 +38,19 @@ function M:input_loop()
 			elseif key == "space" then
 				repeat until not self.piece:move(-1, 0)
 				self.piece:place()
+			elseif key == "c" then
+				if not self.can_hold then goto bypass end
+				if not self.hold then
+					self.hold = self.piece.poly
+					self:next_piece()
+				else
+					local tmp = self.hold
+					self.hold = self.piece.poly
+					self.piece = tmp:drop(self.field)
+					
+				end
+				self.can_hold = false
+				::bypass::
 			end
 		end
 
@@ -45,18 +60,22 @@ function M:input_loop()
 end
 
 local pieces = {
-	tetrominoes.i,
+	--[[tetrominoes.i,
 	tetrominoes.j,
 	tetrominoes.l,
 	tetrominoes.o,
 	tetrominoes.s,
 	tetrominoes.t,
-	tetrominoes.z,
+	tetrominoes.z,]]
+	tetrominoes.i,
+	tetrominoes.o,
+	tetrominoes.j
 }
 
 function M:next_piece()
 	-- TODO: interface with configurable random system (it should implement
 	-- seeds, bags)
+	self.can_hold = true
 	self.piece = pieces[love.math.random(#pieces)]:drop(self.field)
 	return self.piece and true or false
 end

@@ -20,18 +20,22 @@ function M.def(name, shape)
 		end
 		table.insert(new.cells, 1, line)
 	end
-
+	new.bottom = new.size
+	new.top = 1
+	new.left_side = new.size
+	new.right_side = 1
 	for line = 1, new.size do
 		for column = 1, new.size do
 			if new.cells[line][column] then
-				new.bottom = line
+				if new.bottom > line then new.bottom = line end
+				if new.right_side < column then new.right_side = column end
+				if new.top < line then new.top = line end
+				if new.left_side > column then new.left_side = column end
 			end
 		end
-		if new.bottom then
-			break
-		end
 	end
-
+	new.height = new.top - new.bottom + 1 
+	new.width = new.right_side - new.left_side + 1
 	return new
 end
 

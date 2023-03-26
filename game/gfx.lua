@@ -1,5 +1,6 @@
 local evloop = require "evloop"
 local viewport = require "viewport"
+local tetrominoes = require "game/tetrominoes"
 
 local M = {}
 M.__index = M
@@ -11,12 +12,12 @@ end
 
 local colors = {
 	["tetr.Z"] = {1, 0.2, 0.2},
-	["tetr.I"] = {1, 0.7, 0.2},
-	["tetr.J"] = {1, 1, 0.2},
-	["tetr.L"] = {0.2, 1, 0.2},
-	["tetr.O"] = {0.2, 0.2, 1},
-	["tetr.S"] = {0.5, 0.2, 0.7},
-	["tetr.T"] = {0.7, 0.2, 1},
+	["tetr.I"] = {0.2, 1, 1},
+	["tetr.J"] = {0.2, 0.2, 1},
+	["tetr.L"] = {1, 0.5, 0.2},
+	["tetr.O"] = {1, 1, 0.2},
+	["tetr.S"] = {0.2, 1, 0.2},
+	["tetr.T"] = {1, 0.2, 1},
 }
 
 function M:field_dimensions()
@@ -40,18 +41,60 @@ function M:field_dimensions()
 	return block_size, x, y, w, h
 end
 
+function M:draw_square(block, x, y, block_size)
+	if colors[block] then
+		love.graphics.setColor(unpack(colors[block]))
+	else
+		love.graphics.setColor(1, 1, 1)
+	end
+	love.graphics.rectangle("fill", x, y, block_size, block_size)
+end
+
 function M:draw_block(block, line, column)
 	local block_size, field_x, field_y, _, field_h = self:field_dimensions()
 	local x = field_x + (column - 1) * block_size
 	local y = field_y + field_h - line * block_size
-	if block then
-		if colors[block] then
-			love.graphics.setColor(unpack(colors[block]))
-		else
-			love.graphics.setColor(1, 1, 1)
+	if block then self:draw_square(block, x, y, block_size) end
+end
+
+function M:draw_tetromino(tetromino, x, y, block_size, trim_margins)
+	for yy, line in pairs(tetromino.cells) do
+		for xx, cell in pairs(line) do
+			local xxx = xx
+			local yyy = yy
+			yyy = tetromino.size - yyy + 1
+			if trim_margins then
+				xxx = xxx - tetromino.left_side + 1
+				yyy = yyy - (tetromino.size-tetromino.top)
+			end
+			M:draw_square(cell, x + (xxx-1)*block_size, y + (yyy-1)*block_size, block_size)
 		end
-		love.graphics.rectangle("fill", x, y, block_size, block_size)
 	end
+end
+
+local function debug_mark(x,y,...)
+	love.graphics.setColor(...)
+	love.graphics.rectangle("fill",x-1,y-1,3,3)
+end
+
+function M:draw_hold()
+	local block_size, field_x, field_y, field_w, field_h = self:field_dimensions()
+	local hold_x = field_x + field_w + block_size
+	local hold_y = field_y
+	local margin = block_size/2
+	love.graphics.setColor(0, 0, 0)
+	love.graphics.rectangle("fill", hold_x, hold_y, block_size*1.5 + margin, block_size*1.5 + margin)
+	if not self.game.can_hold then
+		love.graphics.setColor(0.5, 0.5, 0.5, 0.5)
+		love.graphics.rectangle("fill", hold_x, hold_y, block_size*1.5 + margin, block_size*1.5 + margin)
+	end
+	if not self.game.hold then return end
+	local piece = self.game.hold
+	local piece_dim = math.max(piece.width, piece.height)
+	local piece_scale = 3/math.max(piece_dim, 3)
+	local piece_x = hold_x + margin/2 + (3-piece.width*piece_scale)/2 * block_size/2
+	local piece_y = hold_y + margin/2 + (3-piece.height*piece_scale)/2 * block_size/2
+	self:draw_tetromino(self.game.hold, piece_x, piece_y, piece_scale * block_size/2, true)
 end
 
 function M:draw_piece()
@@ -86,6 +129,7 @@ function M:draw(dt)
 	love.graphics.rectangle("fill", 0, 0, 1920, 1080)
 	self:draw_field()
 	self:draw_piece()
+	self:draw_hold()
 end
 
 function M:loop()

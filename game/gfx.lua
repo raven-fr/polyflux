@@ -72,14 +72,18 @@ function M:draw_tetromino(tetromino, x, y, block_size, trim_margins)
 	end
 end
 
-local function debug_mark(x,y,...)
-	love.graphics.setColor(...)
-	love.graphics.rectangle("fill",x-1,y-1,3,3)
+function M:draw_tetromino_confined(tetromino, x, y, sidelength, margin)
+	local dim = math.max(tetromino.width, tetromino.height)
+	local block_size = sidelength/3
+	local scale = 3/math.max(dim, 3)
+	local tetr_x = x + margin/2 + (3-tetromino.width*scale)/2 * block_size
+	local tetr_y = y + margin/2 + (3-tetromino.height*scale)/2 * block_size
+	self:draw_tetromino(tetromino, tetr_x, tetr_y, scale * block_size, true)
 end
 
 function M:draw_hold()
 	local block_size, field_x, field_y, field_w, field_h = self:field_dimensions()
-	local hold_x = field_x + field_w + block_size
+	local hold_x = field_x - block_size - block_size/2 - block_size*3/2
 	local hold_y = field_y
 	local margin = block_size/2
 	love.graphics.setColor(0, 0, 0)
@@ -89,12 +93,7 @@ function M:draw_hold()
 		love.graphics.rectangle("fill", hold_x, hold_y, block_size*1.5 + margin, block_size*1.5 + margin)
 	end
 	if not self.game.hold then return end
-	local piece = self.game.hold
-	local piece_dim = math.max(piece.width, piece.height)
-	local piece_scale = 3/math.max(piece_dim, 3)
-	local piece_x = hold_x + margin/2 + (3-piece.width*piece_scale)/2 * block_size/2
-	local piece_y = hold_y + margin/2 + (3-piece.height*piece_scale)/2 * block_size/2
-	self:draw_tetromino(self.game.hold, piece_x, piece_y, piece_scale * block_size/2, true)
+	self:draw_tetromino_confined(self.game.hold, hold_x, hold_y, block_size*3/2, margin)
 end
 
 function M:draw_piece()

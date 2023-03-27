@@ -1,9 +1,9 @@
 local M = {}
 M.__index = M
 
-function M.def(name, shape)
+function M.def(name, shape, kick_table)
 	local new = setmetatable({name = name}, M)
-
+	new.kick_table = kick_table or {{{0, 0}}, {{0, 0}}, {{0, 0}}, {{0, 0}}}
 	new.cells = {}
 	for l in shape:gmatch "[^%s]+" do
 		local line = {}

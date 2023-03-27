@@ -14,16 +14,22 @@ local function resume_task(task, e)
 				goto resume
 			end
 		end
+		if e[1] == "update" and
+				task.timeout and love.timer.getTime() >= task.timeout then
+			e = {}
+			goto resume
+		end
 		return true
 	end
 
 	::resume::
-	local ok, ret = coroutine.resume(task.co, e)
+	local ok, ret, timeout = coroutine.resume(task.co, e)
 	if not ok then
 		io.stderr:write(debug.traceback(task.co, ret)..'\n\n')
 		error "error in event loop"
 	end
 	task.filter = ret
+	task.timeout = timeout and love.timer.getTime() + timeout
 	return coroutine.status(task.co) ~= "dead"
 end
 
@@ -34,18 +40,18 @@ local function create_task(fn)
 	return task
 end
 
-function M.poll(...)
+function M.poll(timeout, ...)
 	local filter = {...}
-	return unpack(coroutine.yield(#filter > 0 and filter))
+	if type(timeout) == "string" then
+		table.insert(filter, timeout)
+		timeout = nil
+	end
+	return unpack(
+		coroutine.yield((timeout or #filter > 0) and filter, timeout))
 end
 
 function M.sleep(secs)
-	local t = 0
-	while t < secs do
-		local e, dt = M.poll "update"
-		t = t + dt
-	end
-	return t
+	M.poll(secs)
 end
 
 function M.queue(...)

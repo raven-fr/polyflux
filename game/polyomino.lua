@@ -70,7 +70,7 @@ function M:drop(field)
 	local new = setmetatable({poly = self}, piece)
 	new.field = field
 	new.line = field.lines - (self.bottom - 1)
-	new.column = math.floor(field.columns / 2 - self.size / 2 + 0.5)
+	new.column = math.floor(field.columns / 2 - self.size / 2 + 1)
 	new.rotation = 1
 	if not new:can_occupy() then
 		return

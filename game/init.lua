@@ -28,6 +28,7 @@ function M.new(params)
 	new.gfx = gfx.new(new)
 	new.gravity_delay = 0.5
 	new.lock_delay = params.lock_delay or 0.5
+	new.infinity = params.infinity or false
 	new.bag = bag.new(pieces, {seed = os.time(), randomly_add = {
 		[heav_optimal_shapes.heav] = {inverse_chance = 5000},
 		[heav_optimal_shapes.spite_shape] = {inverse_chance = 10000},
@@ -45,19 +46,18 @@ function M:input_loop()
 			return loop()
 		end
 
+		local moved
 		if e == "keypressed" then
 			if key == "left" then
-				self.piece:move(0, -1)
+				moved = self.piece:move(0, -1)
 			elseif key == "right" then
-				self.piece:move(0, 1)
+				moved = self.piece:move(0, 1)
 			elseif key == "down" then
 				local did_move = false
 				while self.piece:move(-1, 0) do did_move = true end
 				if did_move then evloop.queue "game.lock_cancel" end
 			elseif key == "up" then
-				if self.piece:rotate() then
-					evloop.queue "game.lock_cancel"
-				end
+				moved = self.piece:rotate()
 			elseif key == "space" then
 				local dropped = false
 				while self.piece:move(-1, 0) do
@@ -79,6 +79,10 @@ function M:input_loop()
 				self.can_hold = false
 				::bypass::
 			end
+		end
+
+		if moved and self.infinity then
+			evloop.queue "game.lock_cancel"
 		end
 
 		return loop()

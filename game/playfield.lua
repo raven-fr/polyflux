@@ -34,13 +34,17 @@ end
 
 function M:remove_line(line)
 	for line = line, self.lines * 2 do
-		self.cells[line] = self.cells[line + 1]
+		for column = 1, self.columns do
+			self.cells[line][column] = self.cells[line + 1][column]
+		end
 	end
 end
 
 function M:insert_line(line)
 	for line = self.lines * 2, -line + 1 do
-		self.cells[line] = self.cells[line - 1]
+		for column = 1, self.columns do
+			self.cells[line][column] = self.cells[line - 1][column]
+		end
 	end
 end
 

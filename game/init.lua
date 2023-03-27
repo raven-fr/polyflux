@@ -27,6 +27,7 @@ function M.new(params)
 	new.can_hold = true
 	new.gfx = gfx.new(new)
 	new.gravity_delay = 0.5
+	new.lock_delay = params.lock_delay or 0.5
 	new.bag = bag.new(pieces, {seed = os.time(), randomly_add = {
 		[heav_optimal_shapes.heav] = {inverse_chance = 5000},
 		[heav_optimal_shapes.spite_shape] = {inverse_chance = 10000},
@@ -53,13 +54,13 @@ function M:input_loop()
 				self.piece:move(-1, 0)
 			elseif key == "up" then
 				self.piece:rotate()
+				evloop.queue "game.lock_cancel"
 			elseif key == "space" then
 				local dropped = false
 				while self.piece:move(-1, 0) do
 					dropped = true
 				end
-				self.piece:place()
-				self.piece = nil
+				self:place_piece()
 				if dropped then sfx.play("harddrop") end
 			elseif key == "c" then
 				if not self.can_hold then goto bypass end
@@ -70,6 +71,7 @@ function M:input_loop()
 					local tmp = self.hold
 					self.hold = self.piece.poly
 					self.piece = tmp:drop(self.field)
+					evloop.queue "game.lock_cancel"
 				end
 				self.can_hold = false
 				::bypass::
@@ -81,10 +83,30 @@ function M:input_loop()
 	return loop
 end
 
+function M:place_piece()
+	self.piece:place()
+	self.piece = nil
+	evloop.queue "game.lock_cancel"
+end
+
 function M:next_piece()
 	self.can_hold = true
 	self.piece = self.bag:next_piece():drop(self.field)
 	return self.piece and true or false
+end
+
+function M:lock_loop()
+	local function loop()
+		assert(evloop.poll "game.lock" == "game.lock")
+		local e = evloop.poll(self.lock_delay, "game.lock_cancel")
+		if e then
+			return loop()
+		else
+			self:place_piece()
+		end
+		return loop()
+	end
+	return loop
 end
 
 function M:gravity_loop()
@@ -96,8 +118,7 @@ function M:gravity_loop()
 			return loop()
 		end
 		if not self.piece:move(-1, 0) then
-			self.piece:place()
-			self.piece = nil
+			evloop.queue "game.lock"
 		end
 		return loop()
 	end
@@ -109,6 +130,7 @@ function M:loop()
 		evloop.await_any(
 			self:input_loop(),
 			self:gravity_loop(),
+			self:lock_loop(),
 			self.gfx:loop()
 		)
 	end

@@ -55,8 +55,9 @@ function M:input_loop()
 				while self.piece:move(-1, 0) do did_move = true end
 				if did_move then evloop.queue "game.lock_cancel" end
 			elseif key == "up" then
-				self.piece:rotate()
-				evloop.queue "game.lock_cancel"
+				if self.piece:rotate() then
+					evloop.queue "game.lock_cancel"
+				end
 			elseif key == "space" then
 				local dropped = false
 				while self.piece:move(-1, 0) do

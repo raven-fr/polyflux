@@ -89,8 +89,8 @@ end
 function M:place_piece()
 	if not self.piece:can_move(-1, 0) then
 		self.piece:place()
-		self.piece = nil
 		evloop.queue "game.lock_cancel"
+		self:next_piece()
 		return true
 	else
 		return false
@@ -105,7 +105,7 @@ end
 
 function M:lock_loop()
 	local function loop()
-		assert(evloop.poll "game.lock" == "game.lock")
+		evloop.poll "game.lock"
 		local e = evloop.poll(self.lock_delay, "game.lock_cancel")
 		if e then
 			return loop()
@@ -121,20 +121,19 @@ function M:gravity_loop()
 	local function loop()
 		evloop.sleep(self.gravity_delay)
 		self.field:remove_cleared()
-		if not self.piece then
-			assert(self:next_piece(), "you lose!")
-			return loop()
-		end
-		if not self.piece:move(-1, 0) then
+		if self.piece and not self.piece:move(-1, 0) then
 			evloop.queue "game.lock"
 		end
-		return loop()
+		if self.piece then
+			return loop()
+		end
 	end
 	return loop
 end
 
 function M:loop()
 	local function loop()
+		self:next_piece()
 		evloop.await_any(
 			self:input_loop(),
 			self:gravity_loop(),

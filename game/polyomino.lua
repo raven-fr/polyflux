@@ -96,6 +96,17 @@ function piece:can_occupy(line, column, rotation)
 	return true
 end
 
+function piece:can_move(lines, columns, rotation)
+	local rotation = self.rotation + (rotation or 0)
+	if rotation > 4 then
+		rotation = 1
+	elseif rotation < 1 then
+		rotation = 4
+	end
+	local line, column = self.line + lines or 0, self.column + columns or 0
+	return self:can_occupy(line, column, rotation)
+end
+
 function piece:place()
 	if self.placed then
 		return
@@ -126,10 +137,9 @@ function piece:rotate(ccw)
 end
 
 function piece:move(lines, columns)
-	local line, column = self.line + lines, self.column + columns
-	if self:can_occupy(line, column) then
-		self.line = line
-		self.column = column
+	if self:can_move(lines, columns) then
+		self.line = self.line + lines or 0
+		self.column = self.column + columns or 0
 		return true
 	end
 	return false

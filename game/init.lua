@@ -87,9 +87,14 @@ function M:input_loop()
 end
 
 function M:place_piece()
-	self.piece:place()
-	self.piece = nil
-	evloop.queue "game.lock_cancel"
+	if not self.piece:can_move(-1, 0) then
+		self.piece:place()
+		self.piece = nil
+		evloop.queue "game.lock_cancel"
+		return true
+	else
+		return false
+	end
 end
 
 function M:next_piece()

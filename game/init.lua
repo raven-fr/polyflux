@@ -53,9 +53,8 @@ function M:input_loop()
 			elseif key == "right" then
 				moved = self.piece:move(0, 1)
 			elseif key == "down" then
-				local did_move = false
-				while self.piece:move(-1, 0) do did_move = true end
-				if did_move then evloop.queue "game.lock_cancel" end
+				moved = self.piece:move(-1, 0)
+				while self.piece:move(-1, 0) do end
 			elseif key == "up" then
 				moved = self.piece:rotate()
 			elseif key == "space" then

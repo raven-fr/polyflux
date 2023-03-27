@@ -59,6 +59,7 @@ function M:input_loop()
 					dropped = true
 				end
 				self.piece:place()
+				self.piece = nil
 				if dropped then sfx.play("harddrop") end
 			elseif key == "c" then
 				if not self.can_hold then goto bypass end
@@ -69,7 +70,6 @@ function M:input_loop()
 					local tmp = self.hold
 					self.hold = self.piece.poly
 					self.piece = tmp:drop(self.field)
-					
 				end
 				self.can_hold = false
 				::bypass::

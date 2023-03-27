@@ -91,6 +91,7 @@ function M:place_piece()
 		self.piece:place()
 		evloop.queue "game.lock_cancel"
 		self:next_piece()
+		self.field:remove_cleared()
 		return true
 	else
 		return false
@@ -120,7 +121,6 @@ end
 function M:gravity_loop()
 	local function loop()
 		evloop.sleep(self.gravity_delay)
-		self.field:remove_cleared()
 		if self.piece and not self.piece:move(-1, 0) then
 			evloop.queue "game.lock"
 		end

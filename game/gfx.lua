@@ -1,6 +1,7 @@
 local evloop = require "evloop"
 local viewport = require "viewport"
 local tetrominoes = require "game/tetrominoes"
+local debug_gfx = require "game.debug_gfx"
 
 local M = {}
 M.__index = M
@@ -110,9 +111,8 @@ function M:draw_queue()
 	end
 end
 
-function M:draw_piece(shadow)
-	local piece = self.game.piece
-	if shadow then
+function M:draw_piece_general(piece,shadow)
+	if shadow and shadow ~= "only visual" then
 		local old_piece = piece
 		piece = piece.poly:drop(self.game.field)
 		piece.line = old_piece.line
@@ -131,6 +131,10 @@ function M:draw_piece(shadow)
 			end
 		end
 	end
+end
+
+function M:draw_piece(shadow)
+	self:draw_piece_general(self.game.piece, shadow)
 end
 
 function M:draw_field()
@@ -154,6 +158,9 @@ function M:draw(dt)
 	self:draw_queue()
 	if self.game.piece then
 		self:draw_piece(true) -- shadow.
+	end
+	for i=1, #debug_gfx.stack do
+		debug_gfx.stack[i](self)
 	end
 end
 

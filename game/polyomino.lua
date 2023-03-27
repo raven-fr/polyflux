@@ -1,6 +1,9 @@
 local M = {}
 M.__index = M
 
+local evloop = require "evloop"
+local debug_gfx = require "game.debug_gfx"
+
 function M.def(name, shape, kick_table)
 	local new = setmetatable({name = name}, M)
 	new.kick_table = kick_table or {{{0, 0}}, {{0, 0}}, {{0, 0}}, {{0, 0}}}
@@ -129,11 +132,35 @@ function piece:rotate(ccw)
 	elseif rotation < 1 then
 		rotation = 4
 	end
-	if not self:can_occupy(nil, nil, rotation) then
-		return false
+	for i,v in ipairs(self.poly.kick_table[ccw and rotation or self.rotation]) do
+		local mul = ccw and -1 or 1
+		local ty = self.line + v[2] * mul
+		local tx = self.column + v[1] * mul
+
+		--[[ debug rotation
+		if i ~= 1 then
+			evloop.paused = true
+			local shadow = self.poly:drop(self.field)
+			shadow.line = ty
+			shadow.column = tx
+			shadow.rotation = rotation
+			debug_gfx.push(function(self)
+				self:draw_piece_general(shadow, "only visual")
+			end)
+			evloop.debug_sleep(0.6)
+			debug_gfx.pop()
+			evloop.paused = false
+		end
+		]]
+
+		if self:can_occupy(ty, tx, rotation) then
+			self.rotation = rotation
+			self.line = ty
+			self.column = tx
+			return true
+		end
 	end
-	self.rotation = rotation
-	return true
+	return false
 end
 
 function piece:move(lines, columns)

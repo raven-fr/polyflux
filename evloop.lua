@@ -71,37 +71,55 @@ function M.await_any(...)
 	end
 end
 
+function M.debug_sleep(secs)
+	M.paused = true
+	local t = 0
+	while t < secs do
+		local _, dt = M.poll "debug.update"
+		t = t + dt
+	end
+	M.paused = false
+end
+
+local function poll_love()
+	love.event.pump()
+	local es = love.event.poll()
+	while true do
+		local e = {es()}
+		if not e[1] then break end
+		if love.handlers[e[1]] then
+			love.handlers[e[1]](unpack(e, 2))
+		end
+		table.insert(queue, e)
+	end
+end
+
 function M.mainloop(start)
 	local main = create_task(function()
 		start()
 	end)
 
 	return function()
-		love.event.pump()
-		local es = love.event.poll()
-		while true do
-			local e = {es()}
-			if not e[1] then break end
+		if not M.paused then poll_love() end
+
+		local q = queue
+		queue = {}
+		for i, e in ipairs(q) do
 			if e[1] == "quit" then
 				if not love.quit or not love.quit() then
 					return e[2] or 0
 				end
 			end
-			if love.handlers[e[1]] then
-				love.handlers[e[1]](unpack(e, 2))
-			end
-			table.insert(queue, e)
-		end
-
-		local q = queue
-		queue = {}
-		for i, e in ipairs(q) do
 			if not resume_task(main, e) then return 0 end
 		end
 
 		local dt = love.timer.step()
-		if not resume_task(main, {"update", dt}) then return 0 end
+		if not resume_task(
+				main, {M.paused and "debug.update" or "update", dt}) then
+			return 0
+		end
 
+		::graphics::
 		if love.graphics and love.graphics.isActive() then
 			love.graphics.clear(love.graphics.getBackgroundColor())
 			require "viewport".origin()

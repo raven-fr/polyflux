@@ -25,6 +25,7 @@ function M.new(params)
 	new.field = playfield.new(params.lines or 20, params.columns or 10)
 	new.hold = false
 	new.can_hold = true
+	new.t_spun = false
 	new.gfx = gfx.new(new)
 	new.gravity_delay = 0.5
 	new.lock_delay = params.lock_delay or 0.5
@@ -93,8 +94,14 @@ function M:place_piece()
 	if not self.piece:can_move(-1, 0) then
 		self.piece:place()
 		evloop.queue "game.lock_cancel"
+		local cleared = self.field:remove_cleared()
+		if cleared > 0 then
+			if self.piece.t_spun then
+				local sound = ({"tspinsingle","tspindouble","tspintriple"})[cleared]
+				sfx.play(sound)
+			end
+		end
 		self:next_piece()
-		self.field:remove_cleared()
 		return true
 	else
 		return false

@@ -8,6 +8,9 @@ function M.def(name, shape, kick_table)
 	local new = setmetatable({name = name}, M)
 	new.kick_table = kick_table or {{{0, 0}}, {{0, 0}}, {{0, 0}}, {{0, 0}}}
 	new.cells = {}
+	new.last_rotated = false
+	new.t_spun = false
+	new.last_kick_id = 0
 	for l in shape:gmatch "[^%s]+" do
 		local line = {}
 		new.size = #l
@@ -125,6 +128,16 @@ function piece:place()
 	self.placed = true
 end
 
+function piece:t_spin_check()
+	if self.poly.name ~= "tetr.T" then return false end
+	if self.last_kick_id == 5 then return true end
+	local check_points = {{0,0},{2,2},{0,2},{2,0}}
+	local corners_total = 0
+	for i, v in ipairs(check_points) do
+		if self.field.cells[self.line+v[1]][self.column+v[2]] then corners_total = corners_total + 1 end
+	end
+	return corners_total >= 3
+end
 function piece:rotate(ccw)
 	local rotation = self.rotation + (ccw and -1 or 1)
 	if rotation > 4 then
@@ -157,6 +170,9 @@ function piece:rotate(ccw)
 			self.rotation = rotation
 			self.line = ty
 			self.column = tx
+			self.last_rotated = true
+			self.last_kick_id = i
+			self.t_spun = self:t_spin_check()
 			return true
 		end
 	end
@@ -167,6 +183,8 @@ function piece:move(lines, columns)
 	if self:can_move(lines, columns) then
 		self.line = self.line + lines or 0
 		self.column = self.column + columns or 0
+		self.last_rotated = false
+		self.t_spun = false
 		return true
 	end
 	return false

@@ -1,5 +1,6 @@
 local sounds = {
     "harddrop",
+    "tspinsingle", "tspindouble", "tspintriple",
 }
 
 local sources = {}

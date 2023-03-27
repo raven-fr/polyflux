@@ -50,13 +50,16 @@ end
 
 function M:remove_cleared()
 	local line = 1
+	local cleared_lines = 0
 	while line < self.lines * 2 do
 		if self:line_cleared(line) then
 			self:remove_line(line)
+			cleared_lines = cleared_lines + 1
 		else
 			line = line + 1
 		end
 	end
+	return cleared_lines
 end
 
 return M

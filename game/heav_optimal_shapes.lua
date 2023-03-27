@@ -29,6 +29,10 @@ M.semicolon = poly.def("heav.semicolon", [[
     ##.
 ]])
 
+M.dot = poly.def("heav.dot", [[
+	#
+]])
+
 M.amongus = poly.def("heav.amongus", [[
 	....###..
 	...#####.

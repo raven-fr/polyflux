@@ -26,6 +26,8 @@ function M.new(params)
 	new.hold = false
 	new.can_hold = true
 	new.t_spun = false
+	new.combo = -1
+	new.stats = {pieces=0, lines=0}
 	new.gfx = gfx.new(new)
 	new.gravity_delay = 0.5
 	new.lock_delay = params.lock_delay or 0.8
@@ -99,14 +101,21 @@ end
 function M:place_piece()
 	if not self.piece:can_move(-1, 0) then
 		self.piece:place()
+		self.stats.pieces = self.stats.pieces + 1
 		evloop.queue "game.lock_cancel"
 		local cleared = self.field:remove_cleared()
 		if cleared > 0 then
+			self.combo = self.combo + 1
+			self.stats.lines = self.stats.lines + cleared
 			if self.piece.t_spun then
 				local sound = ({"tspinsingle","tspindouble","tspintriple"})[cleared]
 				sfx.play(sound)
 			end
+			evloop.queue "game.line_clear"
+		else
+			self.combo = -1
 		end
+		evloop.queue "game.piece_placed"
 		self:next_piece()
 		return true
 	else

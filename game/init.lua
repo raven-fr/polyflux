@@ -60,8 +60,10 @@ function M:input_loop()
 				while self.piece:move(-1, 0) do end
 			elseif key == "up" then
 				moved = self.piece:rotate()
+				if moved then self:on_rotated() end
 			elseif key == "lctrl" then
 				moved = self.piece:rotate(true)
+				if moved then self:on_rotated() end
 			elseif key == "space" then
 				local dropped = false
 				while self.piece:move(-1, 0) do
@@ -96,6 +98,16 @@ function M:input_loop()
 		return loop()
 	end
 	return loop
+end
+
+function M:on_rotated()
+	if self.piece.t_spun then
+		if self.piece.last_kick_id == 5 then
+			sfx.play("tspinkick5")
+		else
+			sfx.play("tspin")
+		end
+	end
 end
 
 function M:place_piece()

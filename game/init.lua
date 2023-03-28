@@ -28,7 +28,7 @@ function M.new(params)
 	new.t_spun = false
 	new.gfx = gfx.new(new)
 	new.gravity_delay = 0.5
-	new.lock_delay = params.lock_delay or 0.5
+	new.lock_delay = params.lock_delay or 0.8
 	new.infinity = params.infinity or false
 	new.bag = bag.new(pieces, {seed = os.time(), randomly_add = {
 		[heav_optimal_shapes.heav] = {inverse_chance = 5000},
@@ -83,8 +83,12 @@ function M:input_loop()
 			end
 		end
 
-		if moved and self.infinity then
-			evloop.queue "game.lock_cancel"
+		if moved then
+			if self.infinity then
+				evloop.queue "game.lock_cancel"
+			elseif not self.piece:can_move(-1, 0) then
+				evloop.queue "game.lock"
+			end
 		end
 
 		return loop()

@@ -58,6 +58,8 @@ function M:input_loop()
 				while self.piece:move(-1, 0) do end
 			elseif key == "up" then
 				moved = self.piece:rotate()
+			elseif key == "lctrl" then
+				moved = self.piece:rotate(true)
 			elseif key == "space" then
 				local dropped = false
 				while self.piece:move(-1, 0) do

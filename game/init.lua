@@ -79,7 +79,7 @@ function M:input_loop()
 					local tmp = self.hold
 					self.hold = self.piece.poly
 					self.piece = tmp:drop(self.field)
-					evloop:queue "game.lock_cancel"
+					self.loop:queue "game.lock_cancel"
 				end
 				self.can_hold = false
 				::bypass::
@@ -87,9 +87,9 @@ function M:input_loop()
 
 			if moved then
 				if self.infinity then
-					evloop:queue "game.lock_cancel"
+					self.loop:queue "game.lock_cancel"
 				elseif not self.piece:can_move(-1, 0) then
-					evloop:queue "game.lock"
+					self.loop:queue "game.lock"
 				end
 			end
 		end
@@ -112,7 +112,7 @@ function M:place_piece()
 	if not self.piece:can_move(-1, 0) then
 		self.piece:place()
 		self.stats.pieces = self.stats.pieces + 1
-		evloop:queue "game.lock_cancel"
+		self.loop:queue "game.lock_cancel"
 		local cleared = self.field:remove_cleared()
 		if cleared > 0 then
 			self.combo = self.combo + 1
@@ -121,11 +121,11 @@ function M:place_piece()
 				local sound = ({"tspinsingle","tspindouble","tspintriple"})[cleared]
 				sfx.play(sound)
 			end
-			evloop:queue "game.line_clear"
+			self.loop:queue "game.line_clear"
 		else
 			self.combo = -1
 		end
-		evloop:queue "game.piece_placed"
+		self.loop:queue "game.piece_placed"
 		self:next_piece()
 		return true
 	else
@@ -151,7 +151,7 @@ end
 function M:gravity_loop()
 	for _ in evloop.events(self.gravity_delay) do
 		if self.piece and not self.piece:move(-1, 0) then
-			evloop:queue "game.lock"
+			self.loop:queue "game.lock"
 		end
 		if not self.piece then
 			self.loop:quit()

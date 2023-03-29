@@ -1,133 +1,144 @@
-local M = {}
+-- module implementing nestable asynchronous event loop objects. the module
+-- itself is an event loop object, representing the main event loop.
+
+local M
+
+local function new(...)
+	local new = setmetatable({}, M)
+	new.event_queue = {}
+	new.tasks = {}
+	for i = 1, select("#", ...) do
+		new:wrap(select(i, ...))
+	end
+	return new
+end
+
+M = new()
 M.__index = M
 
-local queue = {}
+M.new = new
 
-local function resume_task(task, e)
-	if coroutine.status(task.co) == "dead" then
-		return false
-	end
-
-	if task.filter then
-		for _, f in ipairs(task.filter) do
-			if f == e[1] then
-				goto resume
-			end
-		end
-		if e[1] == "update" and
-				task.timeout and love.timer.getTime() >= task.timeout then
-			e = {}
-			goto resume
-		end
-		return true
-	end
-
-	::resume::
-	local ok, ret, timeout = coroutine.resume(task.co, e)
-	if not ok then
-		io.stderr:write(debug.traceback(task.co, ret)..'\n\n')
-		error "error in event loop"
-	end
-	task.filter = ret
-	task.timeout = timeout and love.timer.getTime() + timeout
-	return coroutine.status(task.co) ~= "dead"
+-- create a new task in the event loop.
+function M:wrap(fn, ...)
+	table.insert(self.event_queue, {coroutine.create(fn), ...})
 end
 
-local function create_task(fn)
-	local task = {}
-	task.co = coroutine.create(fn)
-	resume_task(task)
-	return task
+-- send an event: evloop:queue(event, args...)
+function M:queue(...)
+	assert(type((...)))
+	table.insert(self.event_queue, {...})
 end
 
-function M.poll(timeout, ...)
-	local filter = {...}
+local function event_filter(timeout, ...)
+	local filter = {}
+	for i = 1, select("#", ...) do
+		filter[select(i, ...)] = true
+	end
 	if type(timeout) == "string" then
-		table.insert(filter, timeout)
+		filter[timeout] = true
 		timeout = nil
 	end
-	return unpack(
-		coroutine.yield((timeout or #filter > 0) and filter, timeout))
+	return filter, timeout
+end
+
+-- poll for an event: evloop.poll([timeout,] [events...])
+-- returns: event, args...
+function M.poll(...)
+	local filter, timeout = event_filter(...)
+	local e
+	local t = 0
+	repeat
+		e = coroutine.yield(true)
+		if e[1] == "timer" then
+			t = t + e[2]
+		end
+		if timeout and t >= timeout then
+			return
+		end
+	until filter[e[1]] or (not timeout and not next(filter))
+	return unpack(e)
+end
+
+-- like evloop.poll but returns an iterator
+function M.events(...)
+	local filter, timeout = event_filter(...)
+	local t = 0
+	local function iter()
+		if timeout and t >= timeout then
+			t = t - timeout
+			return false
+		end
+		local e = coroutine.yield(true)
+		if e[1] == "timer" then
+			t = t + e[2]
+		end
+		if (timeout or next(filter)) and not filter[e[1]] then
+			return iter()
+		else
+			return unpack(e)
+		end
+	end
+	return iter
 end
 
 function M.sleep(secs)
 	M.poll(secs)
 end
 
-function M.queue(...)
-	table.insert(queue, {...})
-end
-
-function M.await_any(...)
-	local tasks = {...}
-	for i, t in ipairs(tasks) do
-		tasks[i] = create_task(t)
-	end
-	while true do
-		local e = coroutine.yield()
-		for _, t in ipairs(tasks) do
-			if not resume_task(t, e) then return end
-		end
-	end
+function M:quit(...)
+	self:queue("quit", ...)
 end
 
 function M.debug_sleep(secs)
-	M.paused = true
 	local t = 0
+	M.queue "debug.pause"
 	while t < secs do
-		local _, dt = M.poll "debug.update"
+		local _, dt = M.poll "debug.timer"
 		t = t + dt
 	end
-	M.paused = false
+	M.queue "debug.unpause"
 end
 
-local function poll_love()
-	love.event.pump()
-	local es = love.event.poll()
-	while true do
-		local e = {es()}
-		if not e[1] then break end
-		if love.handlers[e[1]] then
-			love.handlers[e[1]](unpack(e, 2))
-		end
-		table.insert(queue, e)
+local function resume_task(co, ...)
+	if coroutine.status(co) == "dead" then
+		return false
 	end
+
+	local ok, ret = coroutine.resume(co, ...)
+	if not ok then
+		-- TODO: make this better somehow
+		io.stderr:write(debug.traceback(co, ret)..'\n\n')
+		error "error in event loop"
+	end
+
+	return coroutine.status(co) ~= "dead"
 end
 
-function M.mainloop(start)
-	local main = create_task(function()
-		start()
-	end)
-
-	return function()
-		if not M.paused then poll_love() end
-
-		local q = queue
-		queue = {}
-		for i, e in ipairs(q) do
-			if e[1] == "quit" then
-				if not love.quit or not love.quit() then
-					return e[2] or 0
+-- run each task in the event loop at once
+function M:run()
+	while true do
+		::send_events::
+		local q = self.event_queue
+		self.event_queue = {}
+		for _, e in ipairs(q) do
+			if type(e[1]) == "thread" then
+				-- start a new task
+				if resume_task(e[1], unpack(e, 2)) then
+					self.tasks[e[1]] = true
+				end
+			elseif e[1] == "quit" then
+				return unpack(e, 2)
+			else
+				for task in pairs(self.tasks) do
+					self.tasks[task] = resume_task(task, e) or nil
 				end
 			end
-			if not resume_task(main, e) then return 0 end
 		end
-
-		local dt = love.timer.step()
-		if not resume_task(
-				main, {M.paused and "debug.update" or "update", dt}) then
-			return 0
+		if #self.event_queue == 0 then
+			if not next(self.tasks) then return end
+			assert(coroutine.running(), "event queue depleted!")
+			table.insert(self.event_queue, coroutine.yield(true))
 		end
-
-		::graphics::
-		if love.graphics and love.graphics.isActive() then
-			love.graphics.clear(love.graphics.getBackgroundColor())
-			require "viewport".origin()
-			if not resume_task(main, {"draw", dt}) then return 0 end
-			love.graphics.present()
-		end
-
-		love.timer.sleep(0.001)
 	end
 end
 

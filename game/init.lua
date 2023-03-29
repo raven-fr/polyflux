@@ -41,16 +41,15 @@ function M.new(params)
 end
 
 function M:input_loop()
-	local function loop()
+	for e, key in evloop.events("keypressed", "keyreleased") do
 		-- TODO: interface with a remappable input system (it should generate
 		-- its own events)
-		local e, key = evloop.poll("keypressed", "keyreleased")
 		if not self.piece then
-			return loop()
+			goto continue
 		end
 
-		local moved
 		if e == "keypressed" then
+			local moved
 			if key == "left" then
 				moved = self.piece:move(0, -1)
 			elseif key == "right" then
@@ -80,24 +79,23 @@ function M:input_loop()
 					local tmp = self.hold
 					self.hold = self.piece.poly
 					self.piece = tmp:drop(self.field)
-					evloop.queue "game.lock_cancel"
+					evloop:queue "game.lock_cancel"
 				end
 				self.can_hold = false
 				::bypass::
 			end
-		end
 
-		if moved then
-			if self.infinity then
-				evloop.queue "game.lock_cancel"
-			elseif not self.piece:can_move(-1, 0) then
-				evloop.queue "game.lock"
+			if moved then
+				if self.infinity then
+					evloop:queue "game.lock_cancel"
+				elseif not self.piece:can_move(-1, 0) then
+					evloop:queue "game.lock"
+				end
 			end
 		end
 
-		return loop()
+		::continue::
 	end
-	return loop
 end
 
 function M:on_rotated()
@@ -114,7 +112,7 @@ function M:place_piece()
 	if not self.piece:can_move(-1, 0) then
 		self.piece:place()
 		self.stats.pieces = self.stats.pieces + 1
-		evloop.queue "game.lock_cancel"
+		evloop:queue "game.lock_cancel"
 		local cleared = self.field:remove_cleared()
 		if cleared > 0 then
 			self.combo = self.combo + 1
@@ -123,11 +121,11 @@ function M:place_piece()
 				local sound = ({"tspinsingle","tspindouble","tspintriple"})[cleared]
 				sfx.play(sound)
 			end
-			evloop.queue "game.line_clear"
+			evloop:queue "game.line_clear"
 		else
 			self.combo = -1
 		end
-		evloop.queue "game.piece_placed"
+		evloop:queue "game.piece_placed"
 		self:next_piece()
 		return true
 	else
@@ -142,43 +140,34 @@ function M:next_piece()
 end
 
 function M:lock_loop()
-	local function loop()
-		evloop.poll "game.lock"
+	for _ in evloop.events "game.lock" do
 		local e = evloop.poll(self.lock_delay, "game.lock_cancel")
-		if e then
-			return loop()
-		else
+		if not e then
 			self:place_piece()
 		end
-		return loop()
 	end
-	return loop
 end
 
 function M:gravity_loop()
-	local function loop()
-		evloop.sleep(self.gravity_delay)
+	for _ in evloop.events(self.gravity_delay) do
 		if self.piece and not self.piece:move(-1, 0) then
-			evloop.queue "game.lock"
+			evloop:queue "game.lock"
 		end
-		if self.piece then
-			return loop()
+		if not self.piece then
+			self.loop:quit()
 		end
 	end
-	return loop
 end
 
-function M:loop()
-	local function loop()
-		self:next_piece()
-		evloop.await_any(
-			self:input_loop(),
-			self:gravity_loop(),
-			self:lock_loop(),
-			self.gfx:loop()
-		)
-	end
-	return loop
+function M:run()
+	self:next_piece()
+	self.loop = evloop.new(
+		function() self:input_loop() end,
+		function() self:gravity_loop() end,
+		function() self:lock_loop() end,
+		function() self.gfx:run() end
+	)
+	return self.loop:run()
 end
 
 return M

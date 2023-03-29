@@ -164,13 +164,10 @@ function M:draw(dt)
 	end
 end
 
-function M:loop()
-	local function loop()
-		local _, dt = evloop.poll "draw"
+function M:run()
+	for _, dt in evloop.events "draw" do
 		self:draw(dt)
-		return loop()
 	end
-	return loop
 end
 
 return M

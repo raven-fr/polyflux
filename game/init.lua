@@ -4,6 +4,7 @@ local tetrominoes = require "game.tetrominoes"
 local heav_optimal_shapes = require "game.heav_optimal_shapes"
 local gfx = require "game.gfx"
 local sfx = require "game.sfx"
+local music = require "game.music"
 local bag = require "game.bag"
 
 local M = {}
@@ -31,6 +32,7 @@ function M.new(assets, params)
 	new.stats = {pieces=0, lines=0}
 	new.gfx = gfx.new(assets, new)
 	new.sfx = sfx.new(assets)
+	new.music = music.new(assets, new)
 	new.gravity_delay = 0.5
 	new.lock_delay = params.lock_delay or 0.8
 	new.infinity = params.infinity or false

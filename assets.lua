@@ -4,6 +4,7 @@ local loaders = {
 	sfx = function(f) return love.audio.newSource(f, "static") end,
 	img = love.graphics.newImage,
 	shader = love.graphics.newShader,
+	music = function(f) return love.audio.newSource(f, "stream") end,
 }
 
 local loaded = {}

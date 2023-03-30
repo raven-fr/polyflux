@@ -15,7 +15,9 @@ function M:play(name)
         self.assets.music[name]:seek(0)
         M.playing = self.assets.music[name]
     end
+    self.assets.music[name]:setVolume(0.5)
 	self.assets.music[name]:play()
+    self.assets.music[name]:setLooping(true)
 end
 
 return M

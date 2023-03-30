@@ -48,7 +48,9 @@ function M:draw_square(block, x, y, block_size, shadow)
 	love.graphics.setColor(1, 1, 1, shadow and 0.2 or 1)
 	local hueshift = self.assets.shader.hueshift
 	love.graphics.setShader(hueshift)
-	hueshift:send("colorize_to", colors[block] or {0, 0, 1})
+	local hsv = colors[block] or {0, 0, 1}
+	
+	hueshift:send("colorize_to",{(hsv[1] + love.timer.getTime()/5) % 1, math.sin(math.asin(hsv[2])+hsv[1]*math.pi*2+love.timer.getTime()/5), hsv[3]})
 
 	local img = self.assets.img.block
 	local img_w, img_h = img:getDimensions()

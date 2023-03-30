@@ -19,8 +19,9 @@ local pieces = {
 	tetrominoes.z,
 }
 
-function M.new(params)
+function M.new(assets, params)
 	local new = setmetatable({}, M)
+	new.assets = assets
 	new.params = params
 	new.field = playfield.new(params.lines or 20, params.columns or 10)
 	new.hold = false
@@ -28,7 +29,8 @@ function M.new(params)
 	new.t_spun = false
 	new.combo = -1
 	new.stats = {pieces=0, lines=0}
-	new.gfx = gfx.new(new)
+	new.gfx = gfx.new(assets, new)
+	new.sfx = sfx.new(assets)
 	new.gravity_delay = 0.5
 	new.lock_delay = params.lock_delay or 0.8
 	new.infinity = params.infinity or false
@@ -69,7 +71,7 @@ function M:input_loop()
 					dropped = true
 				end
 				self:place_piece()
-				if dropped then sfx.play("harddrop") end
+				if dropped then self.sfx:play("harddrop") end
 			elseif key == "c" then
 				if not self.can_hold then goto bypass end
 				if not self.hold then
@@ -101,9 +103,9 @@ end
 function M:on_rotated()
 	if self.piece.t_spun then
 		if self.piece.last_kick_id == 5 then
-			sfx.play("tspinkick5")
+			self.sfx:play("tspinkick5")
 		else
-			sfx.play("tspin")
+			self.sfx: play("tspin")
 		end
 	end
 end
@@ -119,7 +121,7 @@ function M:place_piece()
 			self.stats.lines = self.stats.lines + cleared
 			if self.piece.t_spun then
 				local sound = ({"tspinsingle","tspindouble","tspintriple"})[cleared]
-				sfx.play(sound)
+				self.sfx:play(sound)
 			end
 			self.loop:queue "game.line_clear"
 		else

@@ -1,10 +1,12 @@
 local evloop = require "evloop"
 local game = require "game"
+local assets = require "assets"
 
 local function main()
 	evloop.poll "load"
-	local game_obj = game.new {}
+	local game_assets = assets.load_from "assets"
 	evloop.poll "loaded"
+	local game_obj = game.new(game_assets, {})
 	game_obj:run()
 	evloop:quit()
 end

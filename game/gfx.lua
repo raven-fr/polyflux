@@ -6,8 +6,10 @@ local debug_gfx = require "game.debug_gfx"
 local M = {}
 M.__index = M
 
-function M.new(game)
-	local new = setmetatable({game = game}, M)
+function M.new(assets, game)
+	local new = setmetatable({}, M)
+	new.assets = assets
+	new.game = game
 	return new
 end
 

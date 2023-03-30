@@ -1,23 +1,16 @@
-local sounds = {
-    "harddrop",
-    "tspinsingle", "tspindouble", "tspintriple",
-    "tspin", "tspinkick5",
-}
+local M = {}
+M.__index = M
 
-local sources = {}
-for _, soundname in ipairs(sounds) do
-    sources[soundname] = love.audio.newSource("assets/"..soundname..".mp3","static")
+function M.new(assets)
+	local new = setmetatable({}, M)
+	new.assets = assets
+	return new
 end
 
-local M = {}
-
-function M.play(name)
-    if sources[name] then
-        sources[name]:seek(0)
-        sources[name]:play()
-    else
-        error("no such sound effect: "..name)
-    end
+function M:play(name)
+	assert(self.assets.sfx[name], "no such sound effect: "..name)
+	self.assets.sfx[name]:seek(0)
+	self.assets.sfx[name]:play()
 end
 
 return M

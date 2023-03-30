@@ -14,13 +14,13 @@ function M.new(assets, game)
 end
 
 local colors = {
-	["tetr.Z"] = {1, 0.2, 0.2},
-	["tetr.I"] = {0.2, 1, 1},
-	["tetr.J"] = {0.2, 0.2, 1},
-	["tetr.L"] = {1, 0.5, 0.2},
-	["tetr.O"] = {1, 1, 0.2},
-	["tetr.S"] = {0.2, 1, 0.2},
-	["tetr.T"] = {1, 0.2, 1},
+	["tetr.Z"] = {0, 1, 1},
+	["tetr.I"] = {0.5, 1, 1},
+	["tetr.J"] = {0.67, 1, 1},
+	["tetr.L"] = {0.08, 1, 1},
+	["tetr.O"] = {0.16, 1, 1},
+	["tetr.S"] = {0.33, 1, 1},
+	["tetr.T"] = {0.83, 1, 1},
 }
 
 function M:field_dimensions()
@@ -45,14 +45,14 @@ function M:field_dimensions()
 end
 
 function M:draw_square(block, x, y, block_size, shadow)
-	if colors[block] then
-		love.graphics.setColor(unpack(colors[block]))
-	else
-		love.graphics.setColor(1, 1, 1)
-	end
-	local r, g, b = love.graphics.getColor()
-	love.graphics.setColor(r, g, b, shadow and 0.2 or 1)
-	love.graphics.rectangle("fill", x, y, block_size, block_size)
+	love.graphics.setColor(1, 1, 1, shadow and 0.2 or 1)
+	local hueshift = self.assets.shader.hueshift
+	love.graphics.setShader(hueshift)
+	hueshift:send("colorize_to", colors[block] or {0, 0, 1})
+
+	local img = self.assets.img.block
+	local img_w, img_h = img:getDimensions()
+	love.graphics.draw(img, x, y, 0, block_size / img_w, block_size / img_h)
 end
 
 function M:draw_block(block, line, column, shadow)
@@ -72,7 +72,7 @@ function M:draw_tetromino(tetromino, x, y, block_size, trim_margins)
 				xxx = xxx - tetromino.left_side + 1
 				yyy = yyy - (tetromino.size-tetromino.top)
 			end
-			M:draw_square(cell, x + (xxx-1)*block_size, y + (yyy-1)*block_size, block_size)
+			self:draw_square(cell, x + (xxx-1)*block_size, y + (yyy-1)*block_size, block_size)
 		end
 	end
 end

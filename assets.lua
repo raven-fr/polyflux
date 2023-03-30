@@ -14,7 +14,7 @@ function M.load_from(assets_dir)
 			assets[k] = {}
 			for _, file in ipairs(love.filesystem.getDirectoryItems(dir)) do
 				if love.filesystem.getInfo(dir..file).type == "file" then
-					local name = file:match "(.+)%.[^%.]+$" or name
+					local name = file:match "(.+)%.[^%.]+$" or file
 					assets[k][name] = assert(loader(dir..file))
 				end
 			end

@@ -49,15 +49,17 @@ function M.new(assets, params)
 	return new
 end
 
+local directions = {
+	left = {0, -1},
+	right = {0, 1},
+}
+
 function M:input_loop()
 	local delay = self.das_delay
-	local moving
-	while true do
+
+	for e, key in evloop.events("keypressed", "keyreleased") do
 		-- TODO: interface with a remappable input system (it should generate
 		-- its own events)
-		local e, key = evloop.poll(delay, "keypressed", "keyreleased")
-		local moved
-
 		if not self.piece then
 			goto continue
 		end
@@ -66,19 +68,16 @@ function M:input_loop()
 
 		if e == "keypressed" then
 			local moved
-			if key == "left" then
-				moving = {0, -1}
-			elseif key == "right" then
-				moving = {0, 1}
+			if directions[key] then
+				self:move(unpack(directions[key]))
+				self.loop:queue("game.das", key)
 			elseif key == "down" then
-				moved = self.piece:move(-1, 0)
+				moved = self:move(-1, 0)
 				while self.piece:move(-1, 0) do end
 			elseif key == "up" then
-				moved = self.piece:rotate()
-				if moved then self:on_rotated() end
+				moved = self:rotate()
 			elseif key == "lctrl" then
-				moved = self.piece:rotate(true)
-				if moved then self:on_rotated() end
+				moved = self:rotate(true)
 			elseif key == "space" then
 				local dropped = false
 				while self.piece:move(-1, 0) do
@@ -101,20 +100,8 @@ function M:input_loop()
 				::bypass::
 			end
 		elseif e == "keyreleased" then
-			moving = nil
-		else
-			delay = self.das_repeat_delay
-		end
-
-		if moving then
-			moved = self.piece:move(unpack(moving))
-		end
-
-		if moved then
-			if self.infinity then
-				self.loop:queue "game.lock_cancel"
-			elseif not self.piece:can_move(-1, 0) then
-				self.loop:queue "game.lock"
+			if key == "left" or key == "right" then
+				self.loop:queue("game.das_cancel", key)
 			end
 		end
 
@@ -122,13 +109,52 @@ function M:input_loop()
 	end
 end
 
-function M:on_rotated()
-	if self.piece.t_spun then
-		if self.piece.last_kick_id == 5 then
-			self.sfx:play("tspinkick5")
-		else
-			self.sfx: play("tspin")
+function M:das_loop()
+	for _, dir in evloop.events "game.das" do
+		::das::
+		local e, new_dir = evloop.poll(
+			self.das_delay, "game.das", "game.das_cancel")
+		while true do
+			if e == "game.das" then
+				dir = new_dir
+				goto das
+			elseif e == "game.das_cancel" then
+				if dir == new_dir then break end
+			end
+			self:move(unpack(directions[dir]))
+			e, new_dir = evloop.poll(
+				self.das_repeat_delay, "game.das", "game.das_cancel")
 		end
+	end
+end
+
+function M:on_moved()
+	if self.infinity then
+		self.loop:queue "game.lock_cancel"
+	elseif not self.piece:can_move(-1, 0) then
+		self.loop:queue "game.lock"
+	end
+end
+
+function M:move(lines, columns)
+	if self.piece:move(lines, columns) then
+		self:on_moved()
+	end
+end
+
+function M:rotate(ccw)
+	if self.piece:rotate(ccw) then
+		self:on_moved()
+		if self.piece.t_spun then
+			if self.piece.last_kick_id == 5 then
+				self.sfx:play("tspinkick5")
+			else
+				self.sfx: play("tspin")
+			end
+		end
+		return true
+	else
+		return false
 	end
 end
 
@@ -187,6 +213,7 @@ function M:run()
 	self:next_piece()
 	self.loop = evloop.new(
 		function() self:input_loop() end,
+		function() self:das_loop() end,
 		function() self:gravity_loop() end,
 		function() self:lock_loop() end,
 		function() self.gfx:run() end

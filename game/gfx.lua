@@ -185,7 +185,7 @@ function M:draw_game_text()
 			love.graphics.setColor(1, 1, 1)
 		end
 		local j = 0
-		for text in obj.text:gfind("[^\n]+") do
+		for text in obj.text:gmatch("[^\n]+") do
 			local w = font:getWidth(text)
 			local x = text_end_x - w
 			love.graphics.print(text, x, y + font:getHeight() * j)

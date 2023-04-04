@@ -3,6 +3,9 @@ local viewport = require "viewport"
 local tetrominoes = require "game/tetrominoes"
 local debug_gfx = require "game.debug_gfx"
 
+local font = love.graphics.newFont(20)
+love.graphics.setFont(font)
+
 local M = {}
 M.__index = M
 
@@ -10,6 +13,7 @@ function M.new(assets, game)
 	local new = setmetatable({}, M)
 	new.assets = assets
 	new.game = game
+	new.text_sidebar = {{text = "this won't save you from the mind spiders.\n\n"}}
 	return new
 end
 
@@ -25,11 +29,11 @@ local colors = {
 
 function M:field_dimensions()
 	local padding = 20
-	local area_width = 1280 - padding * 2
+	local area_width = 1920 - padding * 2
 	local area_height = 1080 - padding * 2
 	local c, l = self.game.field.columns, self.game.field.lines
 
-	local scalex, scaley = area_width / c, area_height / l
+	local scalex, scaley = (area_width-500) / c, area_height / l
 	local block_size
 	if scalex * l < area_height then
 		block_size = scalex
@@ -89,19 +93,27 @@ function M:draw_tetromino_confined(tetromino, x, y, sidelength, margin)
 	self:draw_tetromino(tetromino, tetr_x, tetr_y, scale * block_size, true)
 end
 
+local function get_hold_size(self)
+	local block_size, field_x, field_y, field_w, field_h = self:field_dimensions()
+	local x = field_x - block_size - block_size/2 - block_size*3/2
+	local y = field_y
+	local margin = block_size/2
+	local inner_size = block_size*3/2
+	local size = inner_size + margin
+	return x, y, margin, inner_size, size
+end
 function M:draw_hold()
 	local block_size, field_x, field_y, field_w, field_h = self:field_dimensions()
-	local hold_x = field_x - block_size - block_size/2 - block_size*3/2
-	local hold_y = field_y
-	local margin = block_size/2
+	local x, y, margin, size = get_hold_size(self)
 	love.graphics.setColor(0, 0, 0)
-	love.graphics.rectangle("fill", hold_x, hold_y, block_size*1.5 + margin, block_size*1.5 + margin)
+	love.graphics.rectangle("fill", x, y, block_size*1.5 + margin, block_size*1.5 + margin)
 	if not self.game.can_hold then
 		love.graphics.setColor(0.5, 0.5, 0.5, 0.5)
-		love.graphics.rectangle("fill", hold_x, hold_y, block_size*1.5 + margin, block_size*1.5 + margin)
+		love.graphics.rectangle("fill", x, y, block_size*1.5 + margin, block_size*1.5 + margin)
 	end
 	if not self.game.hold then return end
-	self:draw_tetromino_confined(self.game.hold, hold_x, hold_y, block_size*3/2, margin)
+	hold_size = block_size*3/2 + margin -- to be fair this is better described as padding.
+	self:draw_tetromino_confined(self.game.hold, x, y, size, margin)
 end
 
 function M:draw_queue()
@@ -153,6 +165,34 @@ function M:draw_field()
 		end
 	end
 end
+function M:draw_game_text()
+	local font = love.graphics.getFont()
+	local line_height = font:getHeight() * 3/2
+	local hold_x, hold_y, _, _, hold_size = get_hold_size(self)
+	local text_end_x = hold_x + hold_size
+	local text_y = hold_y + hold_size + line_height
+	
+	for i, obj in ipairs(self.text_sidebar) do
+		local y = text_y + (i-1) * line_height
+		local newlines = 0
+		for j=1, #obj.text do
+			if obj.text:sub(j,j) == "\n" then newlines = newlines + 1 end
+		end
+		text_y = text_y + font:getHeight() * newlines
+		if obj.color then
+			love.graphics.setColor(unpack(obj.color))
+		else
+			love.graphics.setColor(1, 1, 1)
+		end
+		local j = 0
+		for text in obj.text:gfind("[^\n]+") do
+			local w = font:getWidth(text)
+			local x = text_end_x - w
+			love.graphics.print(text, x, y + font:getHeight() * j)
+			j = j + 1
+		end
+	end
+end
 
 function M:draw(dt)
 	love.graphics.setColor(0.2, 0.2, 0.2)
@@ -164,6 +204,7 @@ function M:draw(dt)
 	if self.game.piece then
 		self:draw_piece(true) -- shadow.
 	end
+	self:draw_game_text()
 	for i=1, #debug_gfx.stack do
 		debug_gfx.stack[i](self)
 	end

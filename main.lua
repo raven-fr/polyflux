@@ -5,7 +5,7 @@ local function main()
 	evloop.poll "load"
 	local game_assets = assets.load_from "assets"
 	evloop.poll "loaded"
-	local game_obj = game.new(game_assets, {})
+	local game_obj = require("game.modes.40lines").new(game_assets)
 	game_obj.music:play("the")
 	game_obj:run()
 	evloop:quit()

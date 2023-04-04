@@ -39,13 +39,15 @@ function M.new(assets, params)
 
 	new.t_spun = false
 	new.combo = -1
-	new.stats = {pieces = 0, lines = 0}
+	new.stats = {pieces = 0, lines = 0, time = 0, start_time = love.timer.getTime()}
 
 	new.gravity_delay = 0.5
 	new.lock_delay = params.lock_delay or 0.8
 	new.infinity = params.infinity or false
 	new.das_delay = params.das_delay or 0.16
 	new.das_repeat_delay = params.das_repeat_delay or 0.03
+
+	new.loop = evloop.new()
 	return new
 end
 
@@ -171,11 +173,11 @@ function M:place_piece()
 				local sound = ({"tspinsingle","tspindouble","tspintriple"})[cleared]
 				self.sfx:play(sound)
 			end
-			self.loop:queue "game.line_clear"
+			self.loop:queue("game.line_clear")
 		else
 			self.combo = -1
 		end
-		self.loop:queue "game.piece_placed"
+		self.loop:queue("game.piece_placed")
 		self:next_piece()
 		return true
 	else
@@ -209,15 +211,32 @@ function M:gravity_loop()
 	end
 end
 
+function M:time_loop()
+	while true do
+		self.loop.poll("update")
+		self.stats.time = love.timer.getTime() - self.stats.start_time
+	end
+end
+
+function M:win()
+	self.loop:kill("input_loop")
+	self.loop:kill("gravity_loop")
+	self.loop:kill("lock_loop")
+	self.loop:kill("das_loop")
+	self.loop:kill("time_loop")
+	self.gfx.text_sidebar[1].text = "you win.\n\n"
+	self.gfx.text_sidebar[1].color = {1, 1, 0}
+	self.music:fade(self.loop, 4)
+end
+
 function M:run()
 	self:next_piece()
-	self.loop = evloop.new(
-		function() self:input_loop() end,
-		function() self:das_loop() end,
-		function() self:gravity_loop() end,
-		function() self:lock_loop() end,
-		function() self.gfx:run() end
-	)
+	self.loop:wrap{function() self:input_loop() end, name="input_loop"}
+	self.loop:wrap{function() self:gravity_loop() end, name="gravity_loop"}
+	self.loop:wrap{function() self:lock_loop() end, name="lock_loop"}
+	self.loop:wrap{function() self:das_loop() end, name="das_loop"}
+	self.loop:wrap{function() self:time_loop() end, name="time_loop"}
+	self.loop:wrap{function() self.gfx:run() end, name="gfx"}
 	return self.loop:run()
 end
 

@@ -7,6 +7,7 @@ local function new(...)
 	local new = setmetatable({}, M)
 	new.event_queue = {}
 	new.tasks = {}
+	new.named_tasks = {}
 	for i = 1, select("#", ...) do
 		new:wrap(select(i, ...))
 	end
@@ -20,13 +21,26 @@ M.new = new
 
 -- create a new task in the event loop.
 function M:wrap(fn, ...)
-	table.insert(self.event_queue, {coroutine.create(fn), ...})
+	local name = false
+	if type(fn) == "table" then
+		name = fn.name
+		fn = fn[1]
+	end
+	table.insert(self.event_queue, {coroutine.create(fn), name, ...})
 end
 
 -- send an event: evloop:queue(event, args...)
 function M:queue(...)
 	assert(type((...)))
 	table.insert(self.event_queue, {...})
+end
+
+-- destroy a named task
+function M:kill(name)
+	if self.named_tasks[name] then
+		self.tasks[self.named_tasks[name]] = nil
+		self.named_tasks[name] = nil
+	end
 end
 
 local function event_filter(timeout, ...)
@@ -123,8 +137,10 @@ function M:run()
 		for _, e in ipairs(q) do
 			if type(e[1]) == "thread" then
 				-- start a new task
-				if resume_task(e[1], unpack(e, 2)) then
+				local name = e[2]
+				if resume_task(e[1], unpack(e, 3)) then
 					self.tasks[e[1]] = true
+					if name then self.named_tasks[name] = e[1] end
 				end
 			elseif e[1] == "quit" then
 				return unpack(e, 2)

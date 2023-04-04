@@ -224,6 +224,7 @@ function M:win()
 	self.loop:kill("lock_loop")
 	self.loop:kill("das_loop")
 	self.loop:kill("time_loop")
+	self.piece = nil
 	self.gfx.text_sidebar[1].text = "you win.\n\n"
 	self.gfx.text_sidebar[1].color = {1, 1, 0}
 	self.music:fade(self.loop, 4)
